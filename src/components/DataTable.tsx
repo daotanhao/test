@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, message } from 'antd';
+import { Table, Button } from 'antd';
+import HexInput from './HexInput';
 
 interface DataTableProps {
   base64Data: string;
@@ -36,38 +37,45 @@ export const DataTable: React.FC<DataTableProps> = ({ base64Data, onChange }) =>
     const bytes = base64ToBytes(base64Data);
     const tableData: TableData[] = [];
     for (let i = 0; i < bytes.length; i += 8) {
+      const rowHex = Array.from(bytes.slice(i, i + 8)).map(byteToHex);
+      while (rowHex.length < 8) {
+        rowHex.push('');
+      }
       const row = {
         key: i,
         index: i,
-        hex: Array.from(bytes.slice(i, i + 8)).map(byteToHex),
-        ascii: Array.from(bytes.slice(i, i + 8)).map(byteToAscii).join('')
+        hex: rowHex,
+        ascii: rowHex.map(h => (h ? byteToAscii(parseInt(h, 16)) : '')).join('')
       };
       tableData.push(row);
     }
     setData(tableData);
   }, [base64Data]);
 
-  const handleHexChange = (value: string, rowIndex: number, colIndex: number) => {
-    const hexValue = value.toUpperCase();
-    const hexRegex = /(?<=^(..)*)([2-7]{1}[A-Fa-f0-9]{1})/;
-
-    if (!hexRegex.test(hexValue)) {
-      message.error('Invalid HEX value. Please enter a value between 00 and FF.');
-      return;
-    }
-
+  const handleHexChange = (rowIndex: number, colIndex: number, value: string) => {
     const newData = [...data];
-    newData[rowIndex].hex[colIndex] = hexValue;
+    newData[rowIndex].hex[colIndex] = value;
 
     // Update ASCII value
-    const byteValue = parseInt(hexValue, 16);
-    newData[rowIndex].ascii = newData[rowIndex].hex.map(h => byteToAscii(parseInt(h, 16))).join('');
+    newData[rowIndex].ascii = newData[rowIndex].hex.map(h => (h ? byteToAscii(parseInt(h, 16)) : '')).join('');
 
     setData(newData);
 
     // Trigger onChange
-    const updatedBytes = newData.flatMap(row => row.hex.map(h => parseInt(h, 16)));
+    const updatedBytes = newData.flatMap(row => row.hex.map(h => (h ? parseInt(h, 16) : 0)));
     onChange(updatedBytes);
+  };
+
+  const addRow = () => {
+    const newIndex = data.length * 8;
+    const newRow = {
+      key: newIndex,
+      index: newIndex,
+      hex: Array(8).fill(''),
+      ascii: ''
+    };
+    const newData = [...data, newRow];
+    setData(newData);
   };
 
   const columns = [
@@ -81,17 +89,10 @@ export const DataTable: React.FC<DataTableProps> = ({ base64Data, onChange }) =>
       dataIndex: 'hex',
       key: 'hex',
       render: (hex: string[], record: TableData, rowIndex: number) => (
-        <div style={{ display: 'flex' }}>
-          {hex.map((h, colIndex) => (
-            <Input
-              key={colIndex}
-              value={h}
-              maxLength={2}
-              style={{ width: '40px', marginRight: '4px' }}
-              onChange={e => handleHexChange(e.target.value, rowIndex, colIndex)}
-            />
-          ))}
-        </div>
+        <HexInput
+          values={hex}
+          onChange={(colIndex, value) => handleHexChange(rowIndex, colIndex, value)}
+        />
       )
     },
     {
@@ -101,5 +102,12 @@ export const DataTable: React.FC<DataTableProps> = ({ base64Data, onChange }) =>
     },
   ];
 
-  return <Table dataSource={data} columns={columns} pagination={false} />;
+  return (
+    <div>
+      <Button onClick={addRow} type="primary" style={{ marginBottom: '16px' }}>
+        Add Row
+      </Button>
+      <Table showHeader={false} dataSource={data} columns={columns} pagination={false} />
+    </div>
+  );
 };
