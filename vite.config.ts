@@ -13,7 +13,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '~': path.resolve(__dirname, './src')
+      '~': path.resolve(__dirname, './src'),
+      'react-virtualized/List': 'react-virtualized/dist/es/List',
     }
   }
 })

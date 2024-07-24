@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button } from 'antd';
 import HexInput from './HexInput';
+import List from 'react-virtualized/List';
+import 'react-virtualized/styles.css';
+
 
 interface DataTableProps {
   base64Data: string;
@@ -102,12 +105,29 @@ export const DataTable: React.FC<DataTableProps> = ({ base64Data, onChange }) =>
     },
   ];
 
+  function rowRenderer({index, key}: any) {
+    return (
+      <div key={key} style={{ color: 'black', display: 'flex', alignItems: 'center', marginBottom: 20}}>
+        <div style={{ paddingRight: 20}}>{data[index].index}</div>
+        <HexInput values={data[index].hex} onChange={(colIndex, value) => handleHexChange(index, colIndex, value)}/>
+        <div style={{ paddingLeft: 20}}>{data[index].ascii}</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Button onClick={addRow} type="primary" style={{ marginBottom: '16px' }}>
         Add Row
       </Button>
-      <Table showHeader={false} dataSource={data} columns={columns} pagination={false} />
+      {/* <Table showHeader={false} dataSource={data} columns={columns} pagination={false} /> */}
+      <List
+    width={500}
+    height={300}
+    rowCount={data.length}
+    rowHeight={120}
+    rowRenderer={rowRenderer}
+  />
     </div>
   );
 };
